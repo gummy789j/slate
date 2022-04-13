@@ -15,6 +15,7 @@ under the License.
 %>
 <% language_tabs = current_page.data.language_tabs || [] %>
 <% page_content = yield %>
+<% page_subcontent = yield %>
 <%
   if current_page.data.includes
     current_page.data.includes.each do |include|
@@ -22,6 +23,7 @@ under the License.
     end
   end
 %>
+
 
 <!doctype html>
 <html>
@@ -72,7 +74,12 @@ under the License.
       </span>
     </a>
     <div class="toc-wrapper">
-      <%= image_tag "logo.png", class: 'logo' %>
+      <div class="logo-wrapper">
+      <a href="https://www.bitgin.net/">
+      <%= image_tag "logo_full.svg", class: 'logo' %>
+      </a>
+      </div>
+      <div class="logo-subtitle"><%= current_page.data.title || "API Documentation" %></div>
       <% if language_tabs.any? %>
         <div class="lang-selector">
           <% language_tabs.each do |lang| %>
@@ -90,7 +97,7 @@ under the License.
         </div>
         <ul class="search-results"></ul>
       <% end %>
-      <ul id="toc" class="toc-list-h1">
+      <ul id="toc" class="toc-list-h1" style="display: block;">
         <% toc_data(page_content).each do |h1| %>
           <li>
             <a href="#<%= h1[:id] %>" class="toc-h1 toc-link" data-title="<%= h1[:title] %>"><%= h1[:content] %></a>
@@ -98,7 +105,16 @@ under the License.
               <ul class="toc-list-h2">
                 <% h1[:children].each do |h2| %>
                   <li>
-                    <a href="#<%= h2[:id] %>" class="toc-h2 toc-link" data-title="<%= h2[:title] %>"><%= h2[:content] %></a>
+                    <a href="#<%= h2[:id] %>" class="toc-h2 toc-link active-parent" data-title="<%= h2[:title] %>"><%= h2[:content] %></a>
+                    <% if h2[:children].length > 0 %>
+                    <ul class="toc-list-h3 active" style="display: block;">
+                      <% h2[:children].each do |h3| %>
+                        <li>
+                          <a href="#<%= h3[:id] %>" class="toc-h3 toc-link active" data-title="<%= h3[:title] %>"><%= h3[:content] %></a>
+                        </li>
+                      <% end %>
+                    </ul>
+                  <% end %>
                   </li>
                 <% end %>
               </ul>

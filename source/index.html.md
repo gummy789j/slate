@@ -1,18 +1,21 @@
 ---
-title: API Reference
+title: API Documentation
 
 language_tabs: # must be one of https://git.io/vQNgJ
-  - shell
-  - ruby
+  - go
   - python
   - javascript
 
 toc_footers:
-  - <a href='#'>Sign Up for a Developer Key</a>
-  - <a href='https://github.com/slatedocs/slate'>Documentation Powered by Slate</a>
+  - <a href='https://bitgin.freshdesk.com/support/tickets/new' target="_blank">Contact us</a>
 
 includes:
-  - errors
+  - exchange
+  - faas
+  - mine-share
+ # - errors
+
+
 
 search: true
 
@@ -25,221 +28,109 @@ meta:
 
 # Introduction
 
-Welcome to the Kittn API! You can use our API to access Kittn API endpoints, which can get information on various cats, kittens, and breeds in our database.
+Welcome to the BITGIN API documentation. We offer complete Exchange, Fiat-as-a-Service, Mine Share Service APIs to suit your needs. The BITGIN API is designed to allow access to all the features of the BITGIN platform.
 
-We have language bindings in Shell, Ruby, Python, and JavaScript! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.
+We have language bindings in Go, Python, and JavaScript! You can view code examples in the dark area to the right, and you can switch the programming language of the examples with the tabs in the top right.
 
-This example API documentation page was created with [Slate](https://github.com/slatedocs/slate). Feel free to edit it and use it as a base for your own API's documentation.
+REST Endpoint URL: **https://api.bitgin.net**
+
+<aside class="notice">
+<strong>
+You can find sample code and mock server for each connectivity option at  <a href="https://github.com/BITGIN/bitgin-api-docs">https://github.com/BITGIN/bitgin-api-docs</a>.
+</strong>
+</aside>
+
 
 # Authentication
 
 > To authorize, use this code:
 
-```ruby
-require 'kittn'
+```go
+import (
+  "bytes"
+  "net/http"
+  "strconv"
+  "crypto/hmac"
+  "crypto/sha256"
+  "encoding/hex"
+  "math/rand"
+  "time"
+  "fmt"
+)
+func sign(payload string) string {
+	hash := hmac.New(sha256.New, []byte("YOUR_API_SECRET"))
+	hash.Write([]byte(payload))
+	signature := hex.EncodeToString(hash.Sum(nil))
+	return signature
+}
 
-api = Kittn::APIClient.authorize!('meowmeowmeow')
+func randFunc() string {
+	rand.Seed(time.Now().Unix())
+	// 2^32
+	x := rand.Int63n(4294967296)
+	return fmt.Sprintf("%08x", x)
+}
+
+func main() {
+  method := http.MethodPost
+  path := "<path_url>"
+  timestamp := strconv.FormatInt(time.Now().Unix(), 10)
+  nonce := randFunc()
+  payload := fmt.Sprintf("%s%s%s%s%s", method, path, nonce, timestamp, string(<request_body>))
+  signature := sign(payload)
+  req, _ := http.NewRequest("POST", "<endpoint_url>" + path, bytes.NewBuffer(<request_body>))
+  req.Header.Set("BG-API-KEY", "YOUR_API_KEY")
+  req.Header.Set("BG-API-SIGN", signature)
+  req.Header.Set("BG-API-NONCE", nonce)
+  req.Header.Set("BG-API-TIMESTAMP", timestamp)
+  req.Header.Set("Content-Type","application/json")
+}
 ```
 
 ```python
-import kittn
+import time
+import hmac
+from requests import Request
+from random import randrange
 
-api = kittn.authorize('meowmeowmeow')
+ts = int(time.time())
+# 2^32
+nonce = f'{randrange(0,4294967296):0>8x}'
+request = Request('POST', '<endpoint_url>' + '<path_url>')
+prepared = request.prepare()
+signature_payload = f'{prepared.method}{prepared.path_url}{nonce}{ts}{<request_body>}'.encode()
+signature = hmac.new('YOUR_API_SECRET'.encode(), signature_payload, 'sha256').hexdigest()
+
+prepared.headers['BG-API-KEY'] = 'YOUR_API_KEY'
+prepared.headers['BG-API-SIGN'] = signature
+prepared.headers['BG-API-NONCE'] = nonce
+prepared.headers['BG-API-TIMESTAMP'] = str(ts)
+prepared.headers['Content-Type'] = "application/json"
+
 ```
 
-```shell
-# With shell, you can just pass the correct header with each request
-curl "api_endpoint_here" \
-  -H "Authorization: meowmeowmeow"
-```
 
 ```javascript
-const kittn = require('kittn');
 
-let api = kittn.authorize('meowmeowmeow');
 ```
 
-> Make sure to replace `meowmeowmeow` with your API key.
 
-Kittn uses API keys to allow access to the API. You can register a new Kittn API key at our [developer portal](http://example.com/developers).
+For authenticated requests, the following headers should be sent with the request:
 
-Kittn expects for the API key to be included in all API requests to the server in a header that looks like the following:
+- `BG-API-KEY`: Your API key
+- `BG-API-SIGN`: SHA256 HMAC of the following four strings, using your API secret, as a hex string:
+  - HTTP method in uppercase (e.g. `GET` or `POST`)
+  - Request path, including leading slash and any URL parameters but not including the hostname (e.g. `/v1/exchange/account`)
+  - Random number in the half-open interval [0,2^32) with hexadecimal system
+  - Request timestamp (e.g. `1649312027`)
+  - (POST only) Request body (JSON-encoded)
+- `BG-API-NONCE`: Random number in the half-open interval [0,2^32-1) with hexadecimal system
+- `BG-API-TIMESTAMP`: Number of seconds since Unix epoch
 
-`Authorization: meowmeowmeow`
 
 <aside class="notice">
-You must replace <code>meowmeowmeow</code> with your personal API key.
+<strong>
+You will find a detailed example on how to authenticate <a href="https://github.com/BITGIN/bitgin-api-docs#how-to-sign-your-data-">here</a>.
+</strong>
 </aside>
-
-# Kittens
-
-## Get All Kittens
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get()
-```
-
-```shell
-curl "http://example.com/api/kittens" \
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let kittens = api.kittens.get();
-```
-
-> The above command returns JSON structured like this:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Fluffums",
-    "breed": "calico",
-    "fluffiness": 6,
-    "cuteness": 7
-  },
-  {
-    "id": 2,
-    "name": "Max",
-    "breed": "unknown",
-    "fluffiness": 5,
-    "cuteness": 10
-  }
-]
-```
-
-This endpoint retrieves all kittens.
-
-### HTTP Request
-
-`GET http://example.com/api/kittens`
-
-### Query Parameters
-
-Parameter | Default | Description
---------- | ------- | -----------
-include_cats | false | If set to true, the result will also include cats.
-available | true | If set to false, the result will include kittens that have already been adopted.
-
-<aside class="success">
-Remember — a happy kitten is an authenticated kitten!
-</aside>
-
-## Get a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.get(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2" \
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.get(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "name": "Max",
-  "breed": "unknown",
-  "fluffiness": 5,
-  "cuteness": 10
-}
-```
-
-This endpoint retrieves a specific kitten.
-
-<aside class="warning">Inside HTML code blocks like this one, you can't use Markdown, so use <code>&lt;code&gt;</code> blocks to denote code.</aside>
-
-### HTTP Request
-
-`GET http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to retrieve
-
-## Delete a Specific Kitten
-
-```ruby
-require 'kittn'
-
-api = Kittn::APIClient.authorize!('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```python
-import kittn
-
-api = kittn.authorize('meowmeowmeow')
-api.kittens.delete(2)
-```
-
-```shell
-curl "http://example.com/api/kittens/2" \
-  -X DELETE \
-  -H "Authorization: meowmeowmeow"
-```
-
-```javascript
-const kittn = require('kittn');
-
-let api = kittn.authorize('meowmeowmeow');
-let max = api.kittens.delete(2);
-```
-
-> The above command returns JSON structured like this:
-
-```json
-{
-  "id": 2,
-  "deleted" : ":("
-}
-```
-
-This endpoint deletes a specific kitten.
-
-### HTTP Request
-
-`DELETE http://example.com/kittens/<ID>`
-
-### URL Parameters
-
-Parameter | Description
---------- | -----------
-ID | The ID of the kitten to delete
 
